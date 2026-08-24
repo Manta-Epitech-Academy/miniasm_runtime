@@ -1,0 +1,6 @@
+ISZ r1
+JMP l3
+STP
+INC r0
+DEC r1
+JMP l0

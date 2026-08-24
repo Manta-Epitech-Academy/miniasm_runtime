@@ -1,0 +1,20 @@
+{
+  "name": "miniasm",
+  "version": "1.0.0",
+  "description": "MiniASM VM and web IDE",
+  "scripts": {
+    "test": "jest",
+    "test:vm": "jest tests/vm.test.js",
+    "test:ui": "jest tests/exercises.test.js tests/ui.test.js"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"],
+    "moduleFileExtensions": ["js"],
+    "testPathIgnorePatterns": ["/node_modules/"]
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+__pycache__/
+*.pyc
+
+# Vendored build inputs — fetched by scripts/vendor.sh, never committed.
+vendor/

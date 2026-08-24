@@ -1,0 +1,1121 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WDR+E — the not only paper computer</title>
+  <link rel="stylesheet" href="vendor/monaco/vs/editor/editor.main.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+
+    /* ─── Mode navigation ────────────────────────────── */
+    #mode-nav {
+      display: flex;
+      align-items: stretch;
+      background: #11111b;
+      border-bottom: 2px solid #313244;
+      padding: 0 8px;
+      flex: 0 0 auto;
+      position: relative;
+    }
+    #mode-nav > button {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 10px 18px;
+      border: none;
+      background: transparent;
+      color: #6c7086;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+    }
+    #mode-nav > button:hover { color: #cdd6f4; }
+    #mode-nav > button.active {
+      color: #89b4fa;
+      border-bottom-color: #89b4fa;
+    }
+
+    /* ─── Category dropdown ───────────────────────────── */
+    .nav-dropdown {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+    .nav-dropdown-toggle {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 10px 18px;
+      border: none;
+      background: transparent;
+      color: #6c7086;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-dropdown-toggle:hover { color: #cdd6f4; }
+    .nav-dropdown-toggle.has-selection {
+      color: #89b4fa;
+      border-bottom-color: #89b4fa;
+    }
+    .nav-dropdown-arrow {
+      font-size: 10px;
+      transition: transform .2s;
+    }
+    .nav-dropdown.open .nav-dropdown-arrow {
+      transform: rotate(180deg);
+    }
+    .nav-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 260px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background: #1e1e2e;
+      border: 1px solid #313244;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      z-index: 1000;
+      padding: 6px 0;
+    }
+    .nav-dropdown.open .nav-dropdown-menu {
+      display: block;
+    }
+    .nav-cheat-btn {
+      margin-left: auto;
+      font-family: inherit;
+      font-size: 11px;
+      padding: 6px 10px;
+      border: 1px solid #45475a;
+      border-radius: 4px;
+      background: #313244;
+      color: #6c7086;
+      cursor: pointer;
+    }
+    .nav-cheat-btn:hover {
+      color: #f9e2af;
+      border-color: #6c7086;
+    }
+    /* The saved layout follows the participant across sessions and machines, so
+       a layout dragged into a corner has to have a way back that is not "ask
+       the teacher to clear your browser storage". */
+    .nav-layout-btn {
+      margin-left: auto;
+      margin-top: 6px;
+      margin-bottom: 6px;
+      font-family: inherit;
+      font-size: 11px;
+      padding: 0 10px;
+      height: 30px;
+      border: 1px solid #45475a;
+      border-radius: 4px;
+      background: #313244;
+      color: #6c7086;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .nav-layout-btn:hover { color: #cdd6f4; border-color: #6c7086; }
+    .nav-layout-btn + .nav-lang-select,
+    .nav-layout-btn ~ .nav-cheat-btn { margin-left: 8px; }
+    .nav-lang-select {
+      margin-left: auto;
+      margin-top: 6px;
+      margin-bottom: 6px;
+      height: 30px;
+      border-radius: 4px;
+      border: 1px solid #45475a;
+      background: #313244;
+      color: #cdd6f4;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 0 8px;
+    }
+    .nav-lang-select + .nav-cheat-btn {
+      margin-left: 8px;
+    }
+    .nav-cat-header {
+      padding: 8px 14px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #585b70;
+      user-select: none;
+    }
+    .nav-cat-separator {
+      height: 1px;
+      background: #313244;
+      margin: 4px 12px;
+    }
+    .nav-cat-sublabel {
+      padding: 6px 14px 2px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #45475a;
+      user-select: none;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 7px 14px 7px 20px;
+      border: none;
+      background: transparent;
+      color: #bac2de;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      gap: 8px;
+      transition: background .1s, color .1s;
+    }
+    .nav-item:hover:not(.locked) {
+      background: #313244;
+      color: #cdd6f4;
+    }
+    .nav-item.active {
+      background: #89b4fa22;
+      color: #89b4fa;
+      font-weight: 600;
+    }
+    .nav-item.completed {
+      color: #a6e3a1;
+    }
+    .nav-item.completed.active {
+      background: #a6e3a122;
+      color: #a6e3a1;
+    }
+    .nav-item.locked {
+      color: #45475a;
+      cursor: not-allowed;
+    }
+    .nav-item-icon {
+      width: 18px;
+      text-align: center;
+      flex: 0 0 auto;
+      font-size: 12px;
+    }
+
+    /* ─── Main layout ────────────────────────────────── */
+    #root {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+    }
+    .panel-editor {
+      flex: 0 0 50%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #313244;
+    }
+    /*
+       Embedded, this toolbar lives in a pane about 400px wide, and its natural
+       width is half as much again. A single nowrap row solved that by shrinking
+       its children: the Code/Blocks toggle collapsed to a 9px sliver clipped by
+       its own `overflow: hidden`, and the speed slider, its value and the run
+       status fell off the right edge — all of them still "visible" to CSS and
+       to a click through the DOM. Let it wrap instead, and let nothing shrink.
+    */
+    .panel-editor .toolbar {
+      flex: 0 0 auto;
+      padding: 8px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .panel-editor .toolbar > * { flex: 0 0 auto; }
+    .panel-editor .toolbar button {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #45475a;
+      color: #cdd6f4;
+      white-space: nowrap;
+    }
+    .panel-editor .toolbar button:hover {
+      background: #585b70;
+    }
+    .panel-editor .toolbar button.primary {
+      background: #89b4fa;
+      color: #1e1e2e;
+    }
+    .panel-editor .toolbar button.primary:hover {
+      background: #b4befe;
+    }
+    .editor-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .editor-area .code-wrap,
+    .editor-area .blocks-wrap {
+      position: absolute;
+      inset: 0;
+      display: none;
+    }
+    .editor-area .code-wrap.active,
+    .editor-area .blocks-wrap.active {
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-area .monaco-wrap {
+      flex: 1;
+      min-height: 0;
+    }
+    #monaco-editor {
+      width: 100%;
+      height: 100%;
+    }
+    #blockly-workspace {
+      width: 100%;
+      height: 100%;
+    }
+    .toolbar .mode-toggle {
+      display: flex;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #313244;
+    }
+    .toolbar .mode-toggle button {
+      border-radius: 0;
+      border: none;
+      margin: 0;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .toolbar .mode-toggle button.active {
+      background: #89b4fa;
+      color: #1e1e2e;
+    }
+
+    /* ─── Blockly overrides ──────────────────────────── */
+    /* Blockly's toolbox ships a light grey box, which in this dark app reads as
+       a hole in the panel. The category rows below were already restyled; the
+       box around them was missed. */
+    .blocklyToolboxDiv {
+      background-color: #181825 !important;
+      border-right: 1px solid #313244;
+    }
+    .blocklyToolboxCategoryName {
+      color: #f5f5f7 !important;
+      font-weight: 600;
+      text-shadow: 0 0 1px rgba(0,0,0,0.5);
+    }
+    .blocklyToolboxCategory {
+      background-color: #313244 !important;
+    }
+    .blocklyTreeRow {
+      color: #e6e6ea !important;
+    }
+    .blocklyFlyoutBackground { fill: #313244; }
+    /* The workspace is a white sheet in a dark app. Filling the background rect
+       does nothing once a grid is configured: Blockly then sets that rect's
+       fill inline, to the grid pattern, and the pattern is transparent between
+       its dots — so what shows through is `.blocklySvg`, whose own stylesheet
+       paints it white. Colour the sheet, and the grid stays a grid. */
+    .blocklySvg { background-color: #1e1e2e; }
+    .blocklyMainBackground { fill: #1e1e2e; }
+    .blocklyScrollbarHandle { fill: #45475a; }
+
+    /* ─── Right panel (state) ────────────────────────── */
+    .panel-state {
+      flex: 0 0 50%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+
+    /* ─── Docked layout ──────────────────────────────── */
+    /*
+       dockview owns the panel boxes; the app's own panels become their content
+       and stop sizing themselves.
+    */
+    #dock { flex: 1; min-height: 0; height: 100%; }
+    .dock-panel { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+    .dock-content { flex: 1; min-height: 0; height: 100%; display: flex; flex-direction: column; }
+    .dock-machine { overflow-y: auto; }
+    body.docked .panel-editor,
+    body.docked .panel-state {
+      flex: 1 1 auto;
+      width: auto;
+      border: none;
+      max-height: none;
+    }
+    /*
+       Docked, the exercise is not a panel beside the others — it is a bar
+       across the bottom of the whole app, the way an editor keeps its terminal.
+       Code and the machine are what a student works in, and both stay on screen
+       whatever the exercise is doing. The drawer opens over the bottom of the
+       app and closes again; it never takes width from either.
+    */
+    body.docked #root { flex-direction: column; }
+    body.docked #dock { flex: 1 1 auto; min-height: 0; height: auto; }
+    body.docked #exercise-panel {
+      flex: 0 0 auto;
+      max-height: 45%;
+      overflow: hidden;
+      border-top: 1px solid #313244;
+      border-bottom: none;
+    }
+    body.docked #exercise-panel.collapsed { max-height: none; }
+    .ex-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      background: #181825;
+    }
+    .ex-bar h3 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #89b4fa;
+      white-space: nowrap;
+    }
+    /* The opcode list is the part that gives: it shortens before the title or
+       the button do, and disappears entirely on a very narrow pane. */
+    .ex-bar .ex-available {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .ex-bar .ex-actions {
+      flex: 0 0 auto;
+      margin-left: auto;
+      padding: 0;
+      border-top: none;
+      background: none;
+    }
+    .ex-toggle {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #313244;
+      color: #cdd6f4;
+      font-family: inherit;
+      font-size: 11px;
+      line-height: 22px;
+    }
+    .ex-toggle:hover { background: #45475a; }
+    .ex-drawer {
+      overflow-y: auto;
+      min-height: 0;
+      border-top: 1px solid #313244;
+    }
+    #exercise-panel.collapsed .ex-drawer { display: none; }
+    /*
+       No close button on the tabs. The three panels are the app: closing Code
+       takes the editor and the whole toolbar with it, and since ui.js wires
+       those buttons at load, the next reload throws before it can define
+       MiniASMEmbed — leaving a dead frame the platform can no longer drive.
+       The layout is saved, so a reload brings the dead frame back. dockview has
+       no per-panel option for this, so the affordance goes instead.
+    */
+    #dock .dv-default-tab-action { display: none; }
+    /* dockview's dark theme, tuned to this app's palette. */
+    .dockview-theme-dark {
+      --dv-group-view-background-color: #1e1e2e;
+      --dv-tabs-and-actions-container-background-color: #11111b;
+      --dv-activegroup-visiblepanel-tab-background-color: #1e1e2e;
+      --dv-activegroup-hiddenpanel-tab-background-color: #181825;
+      --dv-inactivegroup-visiblepanel-tab-background-color: #1e1e2e;
+      --dv-inactivegroup-hiddenpanel-tab-background-color: #181825;
+      --dv-activegroup-visiblepanel-tab-color: #89b4fa;
+      --dv-inactivegroup-visiblepanel-tab-color: #6c7086;
+      --dv-separator-border: #313244;
+      --dv-paneview-header-border-color: #313244;
+      --dv-tabs-and-actions-container-font-size: 13px;
+      --dv-tabs-and-actions-container-height: 30px;
+    }
+
+    /* ─── Narrow layouts (the workshop pane) ─────────── */
+    /*
+       Embedded beside a workshop's instructions, the app gets roughly half a
+       screen. A fixed 50/50 split then squeezes the register and memory tables
+       until the page itself scrolls sideways, which is how it looked in a
+       CTFd pane. Stack the panels instead, and let each table scroll inside
+       its own block.
+    */
+    body { overflow-x: hidden; }
+    .table-block { overflow-x: auto; }
+
+    @media (max-width: 1100px) {
+      #root { flex-direction: column; }
+      .panel-editor,
+      .panel-state {
+        flex: 1 1 auto;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+      }
+      .panel-editor {
+        border-right: none;
+        border-bottom: 1px solid #313244;
+        min-height: 45vh;
+      }
+      .panel-state { min-height: 0; overflow-y: auto; }
+      #exercise-panel { max-height: none; }
+    }
+
+    /* Embedded: the platform owns the language, the exercise list and the
+       progression, so the app's own controls for them are noise. */
+    body.embedded #lang-select,
+    body.embedded .nav-dropdown,
+    body.embedded #btn-cheat-progress { display: none !important; }
+
+    /* ─── Exercise panel ─────────────────────────────── */
+    #exercise-panel {
+      display: none;
+      flex-direction: column;
+      border-bottom: 1px solid #313244;
+      overflow-y: auto;
+      flex: 0 1 auto;
+      max-height: 55%;
+    }
+    #exercise-panel.visible {
+      display: flex;
+    }
+    .ex-header {
+      padding: 10px 14px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+    }
+    .ex-header h3 {
+      margin: 0 0 2px 0;
+      font-size: 14px;
+      color: #89b4fa;
+      font-weight: 600;
+    }
+    .ex-goal {
+      color: #f9e2af;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .ex-body {
+      padding: 10px 14px;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-line;
+      color: #bac2de;
+    }
+    .ex-available {
+      padding: 6px 14px 10px;
+      font-size: 12px;
+      color: #6c7086;
+    }
+    /* In the sandbox there is no exercise, and the panel used to go away
+       entirely — leaving a tab called "Exercise" over an empty rectangle. Say
+       what the pane is instead. */
+    .ex-note {
+      display: none;
+      padding: 8px 14px 12px;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-line;
+      color: #6c7086;
+    }
+    #exercise-panel.sandbox .ex-note { display: block; }
+    #exercise-panel.sandbox .ex-available,
+    #exercise-panel.sandbox .ex-actions,
+    #exercise-panel.sandbox #test-results { display: none; }
+    .ex-available code {
+      background: #313244;
+      color: #cdd6f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      margin: 0 2px;
+    }
+    .ex-actions {
+      padding: 8px 14px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      border-top: 1px solid #313244;
+      background: #181825;
+    }
+    .ex-actions button {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #45475a;
+      color: #cdd6f4;
+    }
+    .ex-actions button:hover { background: #585b70; }
+    .ex-actions button.primary {
+      background: #a6e3a1;
+      color: #1e1e2e;
+      font-weight: 600;
+    }
+    .ex-actions button.primary:hover { background: #94e2d5; }
+    .ex-hint-count {
+      font-size: 11px;
+      color: #6c7086;
+      margin-left: 2px;
+    }
+    #ex-hints {
+      padding: 0 14px;
+    }
+    .hint-box {
+      margin: 6px 0;
+      padding: 8px 12px;
+      background: #313244;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-line;
+      color: #f9e2af;
+      border-left: 3px solid #f9e2af;
+    }
+    #test-results {
+      padding: 8px 14px 12px;
+    }
+    .test-line {
+      padding: 3px 0;
+      font-size: 12px;
+    }
+    .test-line.pass { color: #a6e3a1; }
+    .test-line.fail { color: #f38ba8; }
+    .test-line.error { color: #fab387; }
+    .test-summary {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    /* Completion token — only ever shown when the app is embedded and the
+       host supplied a secret (js/token.js). */
+    .completion-token {
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: #181825;
+      border: 1px solid #313244;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #cdd6f4;
+    }
+    .completion-token code {
+      font-family: inherit;
+      color: #a6e3a1;
+      background: #11111b;
+      padding: 2px 8px;
+      border-radius: 3px;
+      user-select: all;
+    }
+    .token-copy {
+      margin-left: auto;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 3px 10px;
+      background: #313244;
+      color: #cdd6f4;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .token-copy:hover { background: #45475a; }
+    .test-summary.success {
+      background: #a6e3a122;
+      color: #a6e3a1;
+      border: 1px solid #a6e3a144;
+    }
+    .test-summary.failure {
+      background: #f38ba822;
+      color: #f38ba8;
+      border: 1px solid #f38ba844;
+    }
+    .test-summary.forbidden {
+      background: #fab38722;
+      color: #fab387;
+      border: 1px solid #fab38744;
+    }
+    .unlock-msg {
+      margin-top: 6px;
+      color: #89b4fa;
+      font-size: 12px;
+    }
+
+    /* ─── State options bar ──────────────────────────── */
+    .state-options {
+      display: flex;
+      align-items: center;
+      padding: 6px 14px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+    }
+    .toggle-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-text {
+      font-size: 12px;
+      color: #6c7086;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #45475a;
+      border-radius: 9px;
+      transition: background .2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      left: 3px;
+      bottom: 3px;
+      background: #cdd6f4;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: #89b4fa;
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(14px);
+    }
+
+    /* ─── Tables (registers / memory) ────────────────── */
+    .table-block {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #313244;
+    }
+    .table-block.registers { flex: 0 0 auto; }
+    /*
+       The memory table used to take whatever height was left and scroll inside
+       it. On a 1280x800 laptop that left was 89px — a column header and one
+       sliced row, inside a box the eye does not read as scrollable, inside a
+       pane that scrolls too. Let the table be its own height and let the one
+       scrollbar the pane already has do the work.
+    */
+    .table-block.memory { flex: 0 0 auto; }
+    .table-block.memory .table-wrap { overflow-y: visible; }
+    /*
+       And let it fit sideways, whatever the pane is worth. Auto layout sizes
+       the columns to their content and overflows when the pane is narrower
+       than the sum; fixed layout shares out what there is. Nine equal columns
+       of three digits need about 300px, which the pane has at both sizes the
+       workshop is used at.
+    */
+    #memory-table,
+    #registers-table { table-layout: fixed; }
+    #memory-table th,
+    #memory-table td,
+    #registers-table th,
+    #registers-table td { padding: 8px 2px; text-align: center; }
+    /* Wide enough for "@56", the last row's label. */
+    #memory-table th:first-child,
+    #memory-table td:first-child { width: 3em; }
+    .table-block:last-child { border-bottom: none; }
+    .table-block h3 {
+      margin: 0;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #181825;
+      color: #a6e3a1;
+      border-bottom: 1px solid #313244;
+    }
+    .table-wrap {
+      flex: 1;
+      overflow: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #313244;
+    }
+    th {
+      background: #313244;
+      color: #bac2de;
+      font-weight: 600;
+    }
+    tr:hover td { background: #31324444; }
+    .reg-name { color: #89b4fa; }
+    .addr { color: #cba6f7; }
+    .value { font-variant-numeric: tabular-nums; color: #f9e2af; }
+    td.value[contenteditable="true"]:focus { outline: 1px solid #89b4fa; outline-offset: -1px; }
+    .pc-row { background: #45475a55 !important; }
+    .pc-row td { border-left: 3px solid #f9e2af; }
+    /* ─── Speed slider ─────────────────────────────── */
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+    }
+    .speed-label {
+      font-size: 11px;
+      color: #6c7086;
+      white-space: nowrap;
+    }
+    .speed-value {
+      font-size: 11px;
+      color: #89b4fa;
+      min-width: 38px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    #speed-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 70px;
+      height: 4px;
+      background: #45475a;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    #speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #89b4fa;
+      cursor: pointer;
+      border: none;
+    }
+    #speed-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #89b4fa;
+      cursor: pointer;
+      border: none;
+    }
+    .panel-editor .toolbar button.stop {
+      background: #f38ba8;
+      color: #1e1e2e;
+    }
+    .panel-editor .toolbar button.stop:hover {
+      background: #eba0ac;
+    }
+
+    .status {
+      font-size: 12px;
+      color: #6c7086;
+      margin-left: auto;
+      white-space: nowrap;
+      /* the only item allowed to shrink: a parse error is as long as the typo */
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .status.halted { color: #f38ba8; }
+    .status.running { color: #a6e3a1; }
+    /* A program that does not parse used to say so in a browser alert, which in
+       an embedded frame is a modal dialog with the host's domain on it. The
+       status line is where the student is already looking for the machine's
+       answer. */
+    .status.error { color: #fab387; white-space: normal; }
+
+    /* ─── Cheat overlay (internal tool) ─────────────────────── */
+    .cheat-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .cheat-overlay.visible {
+      display: flex;
+    }
+    .cheat-dialog {
+      background: #1e1e2e;
+      border-radius: 10px;
+      border: 1px solid #45475a;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+      max-width: 520px;
+      width: 90%;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .cheat-dialog-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid #313244;
+      background: #181825;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .cheat-dialog-header h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #f9e2af;
+    }
+    .cheat-dialog-header span {
+      font-size: 11px;
+      color: #6c7086;
+    }
+    .cheat-dialog-body {
+      padding: 8px 12px 10px;
+      overflow-y: auto;
+    }
+    .cheat-ex-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .cheat-ex-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #313244;
+      background: #181825;
+      color: #cdd6f4;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .cheat-ex-item:hover {
+      background: #313244;
+    }
+    .cheat-ex-item-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cheat-ex-item-title {
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .cheat-ex-item-meta {
+      font-size: 11px;
+      color: #6c7086;
+    }
+    .cheat-dialog-footer {
+      padding: 8px 12px;
+      border-top: 1px solid #313244;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      background: #181825;
+    }
+    .cheat-dialog-footer button {
+      font-family: inherit;
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: #45475a;
+      color: #cdd6f4;
+    }
+    .cheat-dialog-footer button:hover {
+      background: #585b70;
+    }
+  </style>
+</head>
+<body>
+  <!-- ─── Mode navigation ─────────────────────────────────────── -->
+  <nav id="mode-nav">
+    <button data-mode="sandbox" class="active" data-i18n="sandbox">🏖️ Sandbox</button>
+    <button type="button" data-mode="exercise" id="embed-exercise-tab" hidden></button>
+    <div class="nav-dropdown" id="nav-dropdown">
+      <button type="button" class="nav-dropdown-toggle" id="nav-dropdown-toggle">
+        <span id="nav-dropdown-label" data-i18n="dropdownPlaceholder">Challenges ▾</span>
+      </button>
+      <div class="nav-dropdown-menu" id="nav-dropdown-menu">
+        <!-- Category items generated dynamically by ui.js -->
+      </div>
+    </div>
+    <button type="button" id="btn-layout-reset" class="nav-layout-btn" data-i18n="layoutReset">Reset panels</button>
+    <select id="lang-select" class="nav-lang-select" aria-label="Language"></select>
+    <button type="button" id="btn-cheat-progress" class="nav-cheat-btn" style="display: none;" title="Jump to any exercise (dev only)">(DEBUG) Jump to exercise</button>
+  </nav>
+
+  <div id="root">
+    <!-- ─── Editor panel ────────────────────────────────────── -->
+    <div class="panel-editor">
+      <div class="toolbar">
+        <div class="mode-toggle" role="group" aria-label="Editor mode">
+          <button type="button" id="btn-mode-code" class="active" data-i18n="btnCode">Code</button>
+          <button type="button" id="btn-mode-blocks" data-i18n="btnBlocks">Blocks</button>
+        </div>
+        <button type="button" class="primary" id="btn-run" data-i18n="btnRun">Run</button>
+        <button type="button" id="btn-step" data-i18n="btnStep">Step</button>
+        <button type="button" id="btn-reset" data-i18n="btnReset">Reset</button>
+
+        <label class="speed-control" id="speed-control">
+          <span class="speed-label" data-i18n="speedLabel">Speed</span>
+          <input type="range" id="speed-slider" min="0" max="2000" value="500" step="50" />
+          <span class="speed-value" id="speed-value">500ms</span>
+        </label>
+        <span class="status" id="status" data-i18n="stopped">Stopped</span>
+      </div>
+      <div class="editor-area">
+        <div class="code-wrap active">
+          <div class="monaco-wrap">
+            <div id="monaco-editor"></div>
+          </div>
+        </div>
+        <div class="blocks-wrap">
+          <div id="blockly-workspace"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── State panel ─────────────────────────────────────── -->
+    <div class="panel-state">
+      <!-- Exercise info (hidden in sandbox mode) -->
+      <!-- A bar across the bottom, and a drawer under it. Collapsed, the bar
+           still carries everything needed to work: which exercise, which
+           opcodes are allowed, and the button that runs the tests. The drawer
+           holds what only matters once you have pressed it. -->
+      <div id="exercise-panel">
+        <div class="ex-bar">
+          <button type="button" id="btn-ex-toggle" class="ex-toggle"
+                  aria-controls="ex-drawer" aria-expanded="false"></button>
+          <h3 id="ex-title"></h3>
+          <div class="ex-available" id="ex-available"></div>
+          <div class="ex-actions">
+            <button class="primary" id="btn-panel-test" data-i18n="btnTest">▶ Test</button>
+          </div>
+        </div>
+        <div class="ex-drawer" id="ex-drawer">
+          <div class="ex-note" id="ex-sandbox-note"></div>
+          <div id="test-results"></div>
+        </div>
+      </div>
+
+      <div class="state-options">
+        <label class="toggle-option" for="chk-reset-on-change">
+          <span class="toggle-switch">
+            <input type="checkbox" id="chk-reset-on-change" checked />
+            <span class="toggle-slider"></span>
+          </span>
+          <span class="toggle-text" data-i18n="resetOnEdit">Reset program on edit</span>
+        </label>
+      </div>
+
+      <div class="table-block registers">
+        <h3 data-i18n="registers">Registers</h3>
+        <div class="table-wrap">
+          <table id="registers-table">
+            <!-- One column per register, one row of values: four registers laid
+                 out down the page spent five rows of height to say what fits on
+                 two, and left most of the width empty. The header row carries
+                 the names, so the block heading is not repeated either. -->
+            <thead><tr id="registers-thead-row"></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="table-block memory">
+        <h3 data-i18n="memory">Memory</h3>
+        <div class="table-wrap">
+          <table id="memory-table">
+            <thead><tr id="memory-thead-row"></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Cheat overlay (Ctrl+Shift+E, when enabled) ───────────── -->
+  <div id="cheat-overlay" class="cheat-overlay" aria-hidden="true">
+    <div class="cheat-dialog" role="dialog" aria-modal="true" aria-labelledby="cheat-dialog-title">
+      <div class="cheat-dialog-header">
+        <h3 id="cheat-dialog-title">Cheat: jump to exercise</h3>
+        <span>(Debug tool)</span>
+      </div>
+      <div class="cheat-dialog-body">
+        <div id="cheat-exercise-list" class="cheat-ex-list"></div>
+      </div>
+      <div class="cheat-dialog-footer">
+        <button type="button" id="cheat-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/dockview/dockview-core.min.js"></script>
+  <script src="vendor/blockly/blockly_compressed.js"></script>
+  <script src="vendor/monaco/vs/loader.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/lang.js"></script>
+  <script src="js/lang-fr.js"></script>
+  <script src="js/interpreter.js"></script>
+  <script src="js/exercises.js"></script>
+  <script src="js/blocks-miniasm.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/token.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+SET r0 r2
+ISZ r3
+JMP i5
+STP
+DEC r3
+INC r0
+JMP i2

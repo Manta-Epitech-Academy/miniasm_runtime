@@ -1,0 +1,13 @@
+Primitives:
+LDR rX, <#imm | rY | @addr>    Load register
+STM @addr, <rX | #imm>         Store to memory
+INC rX                          Increment register by 1
+DEC rX                          Decrement register by 1
+ISZ rX                          Skip next instruction if rX == 0
+JMP lN                          Jump to line N
+STP                             Halt the program
+
+Unlockable (via exercises):
+ADD rX rY                       rX = rX + rY  (rY preserved)
+MUL rX rY                       rX = rX × rY  (rY preserved)
+POW rX rY                       rX = rX ^ rY  (rY preserved)

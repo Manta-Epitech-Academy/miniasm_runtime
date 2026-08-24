@@ -1,0 +1,9 @@
+STM @0 r0
+LDR r0 #0
+ISZ r1
+JMP l5
+STP
+LDR r2 @0
+ADD r0 r2
+DEC r1
+JMP l2
