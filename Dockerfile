@@ -23,7 +23,9 @@ RUN rm -rf .git .github node_modules tests solutions other_implementations \
 FROM nginx:1.27-alpine AS runtime
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app /usr/share/nginx/html
+# Under the path the workshop platform embeds it at; docker/nginx.conf serves
+# it there and redirects any other version to it.
+COPY --from=build /app /usr/share/nginx/html/runtime/miniasm/latest
 
 EXPOSE 80
 
